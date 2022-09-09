@@ -1,0 +1,5 @@
+python==3.9.12
+numba==0.55.1
+numpy==1.21.2
+matplotlib==3.5.1
+tqdm==4.63.0
