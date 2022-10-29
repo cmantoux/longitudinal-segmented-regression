@@ -1,6 +1,6 @@
 # Longitudinal Segmented Regression
 
-This repository provides tools and algorithms for the estimation and the selection of statistical models for longitudinal data, where the trajectory of each individual is modeled as an affine trajectory.
+This repository provides tools and algorithms for the estimation and the selection of statistical models for longitudinal data, where the trajectory of each individual is modeled as a piecewise affine trajectory.
 
 <p align="center">
   <img src="demo/figures/individual_trajectories.png" alt="Example result"/>
