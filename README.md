@@ -19,9 +19,9 @@ conda activate lsr
 
 ### Ready-made scripts
 
-This repository contains two code examples. A Python script `script_demo.py`, which
+This repository contains two code examples. A Python script [`script_demo.py`](script_demo.py), which
 runs with `python script_demo.py`, performs the standard pipeline for model estimation and selection.
-Additionally, a Jupyter notebook `Demo.ipynb` provides a more detailed exposition and specific use cases.
+Additionally, a Jupyter notebook [`Demo.ipynb`](Demo.ipynb) provides a more detailed exposition and specific use cases.
 
 ### An example
 
