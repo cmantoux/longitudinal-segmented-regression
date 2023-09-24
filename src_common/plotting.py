@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import src_base.model
 
 
-def plot_convergence(history, d, K, true_theta=None, output=None):
+def plot_convergence(history, d, K, true_theta=None, output=None, show=True):
     """
     history: object produced by src_exp.saem.MCMC_SAEM,
     d: data dimension,
@@ -56,14 +56,17 @@ def plot_convergence(history, d, K, true_theta=None, output=None):
     plt.tight_layout()
     if output is not None:
         plt.savefig(output, bbox_inches="tight")
-    plt.show()
+    if show:
+        plt.show()
 
 
-def plot_population_trajectories(Theta, labels=None, feature_names=None, output=None):
+def plot_population_trajectories(Theta, labels=None, feature_names=None, t_min=None, t_max=None, output=None, show=True):
     """
     Theta: list of possible values for the model parameters (at most 10 models),
     labels: list of labels for each model,
     feature_names: list of names for each feature,
+    t_min: upper bound on the time axis left limit
+    t_max: lower bound on the time axis right limit
     output: if given a string, the function saves the plot at the given location.
 
     Displays the population trajectory for all parameters in the list.
@@ -85,14 +88,21 @@ def plot_population_trajectories(Theta, labels=None, feature_names=None, output=
     breakpoints = [] # list of trajectory breakpoints for each model
     for m in range(M):
         p0, t0, v0, _, _, _, _ = Theta[m]
-
-        time_range = t0[-1] - t0[0]
+        K = len(v0)-1
+        if K == 0:
+            time_range = 1
+        else:
+            time_range = t0[-1] - t0[0]
         T = np.concatenate(([t0[0]-time_range/2], t0, [t0[-1]+time_range/2]))
+        if (t_min is not None) and T[0] > t_min:
+            T = np.concatenate(([t_min], T))
+        if (t_max is not None) and T[-1] < t_max:
+            T = np.concatenate((T, [t_max]))
         times.append(T)
 
         B = src_base.model.get_breakpoint_positions(p0, t0, v0)
         breakpoints.append(B)
-
+    
     fig, axes = plt.subplots(nrows=1, ncols=d+1, figsize=(3*d+2, 3))
 
     Lines = []
@@ -129,10 +139,11 @@ def plot_population_trajectories(Theta, labels=None, feature_names=None, output=
     plt.tight_layout()
     if output is not None:
         plt.savefig(output, bbox_inches="tight")
-    plt.show()
+    if show:
+        plt.show()
 
 
-def plot_individual_trajectories(y, t, indices, Z=[], Theta=[], labels=None, feature_names=None, output=None):
+def plot_individual_trajectories(y, t, indices, Z=[], Theta=[], labels=None, feature_names=None, output=None, show=True):
     """
     y: list of observations,
     t: list of times,
@@ -172,13 +183,18 @@ def plot_individual_trajectories(y, t, indices, Z=[], Theta=[], labels=None, fea
     # Next, compute the time points to be used in the pots
     times = [] # time points to use for each model and individual
     for m in range(M):
+        K = len(Theta[m][2]) - 1 # len(v0)-1
         t0 = Theta[m][1]
         taus = Z_full[m][3]
 
         times_model = []
         for ind in indices:
-            t0_reparam = t0 + taus[ind, 1:] # break positions for the individual
-            time_range = t0_reparam[-1] - t0_reparam[0]
+            if K==0:
+                t0_reparam = np.mean(t[ind])[None]
+                time_range = t[ind][-1] - t[ind][0]
+            else:
+                t0_reparam = t0 + taus[ind, 1:] # break positions for the individual
+                time_range = t0_reparam[-1] - t0_reparam[0]
             T_min = min(t0_reparam[0], t[ind][0]) - time_range/2
             T_max = max(t0_reparam[-1], t[ind][-1]) + time_range/2
             T = np.concatenate(([T_min], t0_reparam, [T_max]))
@@ -246,4 +262,5 @@ def plot_individual_trajectories(y, t, indices, Z=[], Theta=[], labels=None, fea
     plt.tight_layout()
     if output is not None:
         plt.savefig(output, bbox_inches="tight")
-    plt.show()
+    if show:
+        plt.show()

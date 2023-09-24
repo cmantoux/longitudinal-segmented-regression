@@ -1,6 +1,6 @@
 """
 This file contains functions performing Markov Chain Monte-Carlo
-on variables of the exponentialized model. The Metropolis-Hastings within Gibbs
+on variables of the non-exponentialized model. The Metropolis-Hastings within Gibbs
 algorithm is used in each case, with custom blocks depending on the target.
 
 Most functions aim at sampling from the posterior distribution of (tau, xi | y), i.e.

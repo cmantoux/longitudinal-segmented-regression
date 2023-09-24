@@ -19,7 +19,7 @@ from src_exp.model import *
 from src_exp.mcmc import *
 
 
-def init_saem(y, t, K, orthogonality_condition=False, heteroscedastic=False):
+def init_saem(y, t, K, orthogonality_condition=False, heteroscedastic=False, min_std=0.01):
     """
     y, t: see NOTATIONS.md
     K: number of breaks in the population trajectory,
@@ -27,6 +27,7 @@ def init_saem(y, t, K, orthogonality_condition=False, heteroscedastic=False):
     heteroscedastic: if True, the standard deviations may take different values
                      per coordinate. If False, the standard deviations are the
                      same across coordinates.
+    min_std: minimal value for the standard deviations. Prevents divisions by zero.
 
     Initialize z and theta for the SAEM.
 
@@ -94,6 +95,12 @@ def init_saem(y, t, K, orthogonality_condition=False, heteroscedastic=False):
         sigma_psi_init = np.ones(d) * psi_init.std() * np.sqrt(d/psi_dim)
         sigma_xi_init = np.ones(K+1) * xi_init.std()
         sigma_init = np.ones(d) * 0.1
+
+    # Prevent null variances
+    sigma_tau_init = np.maximum(sigma_tau_init, min_std)
+    sigma_psi_init = np.maximum(sigma_psi_init, min_std)
+    sigma_xi_init = np.maximum(sigma_xi_init, min_std)
+    sigma_init = np.maximum(sigma_init, min_std)
 
     theta_init = p0_init, t0_init, v0_init, sigma_xi_init, sigma_tau_init, sigma_psi_init, sigma_init
     z_init = (p0_init, t0_init, v0_init, tau_init, xi_init, psi_init)
@@ -179,7 +186,7 @@ def S(y, z_vect, n, t_mat, K, heteroscedastic=False):
     return np.array([S0, S1, S2, S3, S4, S5, S6, S7, S8], dtype=object)
 
 
-def MAP(s, prior, orthogonality_condition=False, heteroscedastic=False):
+def MAP(s, prior, orthogonality_condition=False, heteroscedastic=False, min_std=0.01):
     """
     s: sufficient statistics, as returned by function S,
     prior: see NOTATIONS.md
@@ -187,6 +194,7 @@ def MAP(s, prior, orthogonality_condition=False, heteroscedastic=False):
     heteroscedastic: if True, the standard deviations may take different values
                      per coordinate. If False, the standard deviations are the
                      same across coordinates.
+    min_std: minimal value for the standard deviations. Prevents divisions by zero.
 
     Given prior and a value for the sufficient statistics, returns the result
     of the M-step of the SAEM algorithm.
@@ -208,18 +216,25 @@ def MAP(s, prior, orthogonality_condition=False, heteroscedastic=False):
         sigma_psi = np.sqrt((s[6] + v**2)/(psi_dim*s[8]+m+2)) * np.ones(d) ### CAUTION (depends whether we use psi or s)
         sigma = np.sqrt((s[0] + v**2)/(s[7]+m+2)) * np.ones(d)
 
+    # Prevent null variances
+    sigma_tau = np.maximum(sigma_tau, min_std)
+    sigma_psi = np.maximum(sigma_psi, min_std)
+    sigma_xi = np.maximum(sigma_xi, min_std)
+    sigma = np.maximum(sigma, min_std)
+
     theta_new = p0_bar, t0_bar, v0_bar, sigma_xi, sigma_tau, sigma_psi, sigma
     return theta_new
 
 
 def MCMC_SAEM(y, t, prior, n_iter, n_mh=1,
-            init=None, prop_mh=0.03, orthogonality_condition=False,
+            init=None, prop_mh=0.03, min_std=0.01, orthogonality_condition=False,
             heteroscedastic=True, track_history=False, verbose=False):
     """
     y, t, prior: see NOTATIONS.md,
     n_iter: number of SAEM steps,
     n_mh: number of Metropolis-Hastings steps per SAEM step,
     init: initial value for (z, theta)
+    min_std: minimal value for the standard deviations. Prevents divisions by zero.
     orthogonality_condition: if True, psi is initialized orthogonal to v0.
     heteroscedastic: if True, the standard deviations may take different values
                      per coordinate. If False, the standard deviations are the
@@ -281,7 +296,7 @@ def MCMC_SAEM(y, t, prior, n_iter, n_mh=1,
     t_mat = src_common.utils.get_t_mat(t)
 
     if init is None:
-        z, theta = init_saem(y, t, K, orthogonality_condition, heteroscedastic)
+        z, theta = init_saem(y, t, K, orthogonality_condition, heteroscedastic, min_std=min_std)
     else:
         z, theta = init
     z_vect = pack_z(z)
@@ -318,8 +333,8 @@ def MCMC_SAEM(y, t, prior, n_iter, n_mh=1,
         S_SAEM = (1-gamma)*S_SAEM + gamma*S(y, z_vect, n, t_mat, K, heteroscedastic)
 
         # Maximization step
-        theta = MAP(S_SAEM, prior, orthogonality_condition, heteroscedastic)
-
+        theta = MAP(S_SAEM, prior, orthogonality_condition, heteroscedastic, min_std=min_std)
+        
         # Adaptive MH variance update
         if block_size > max_block_size:
             g_mh = 3/(i+1)**0.55
